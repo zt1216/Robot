@@ -54,6 +54,46 @@ tps
 巡逻点随机出界：随机采样不认识地图边界，用 SamplePosition 以 20 米半径把点吸附回 NavMesh，失败则下帧自动重选。巡逻到点站桩：寻路组件在离目标 1.5 米处刹车，而代码要求 1 米内才算到达，两套参数不一致导致永不换点，阈值改为 2 米修复。后坐力橡皮筋（回头修射击系统）：射击后转视角被拽回开枪瞬间的角度，根因是协程启动时拍下的角度快照在玩家实时修改后失效，修法是玩家一碰鼠标立即 yield break 放弃控制权，同时补上开枪瞬间盲区的检查，并用 StopCoroutine 防止连发时多个后坐力协程叠加互相拉扯。
 
 四、当前状态
-敌人已具备自主巡逻、发现玩家追击、贴脸攻击姿态、玩家逃脱后恢复追击或巡逻的完整行为闭环。待补：攻击开火与伤害结算、敌人受击与死亡。当天另整理了可用于 README 的踩坑记录段落。
+敌人已具备自主巡逻、发现玩家追击、贴脸攻击姿态、玩家逃脱后恢复追击或巡逻的完整行为闭环。待补：攻击开火与伤害结算、敌人受击与死亡。
+
+9月9日开发日志
+
+一、 PlayerShooting 三个性能坑
+
+排查 PlayerShooting 早期版发现三个埋雷点。第一是 sfx 每帧 GetComponent AudioSource（虽然没崩但每帧查询是浪费），提到 Start 缓存到字段，Update 只调 PlayOneShot。第二是 ammoText.text 每帧无脑赋值（文本脏标记触发 Mesh 重排版，量大后帧率肉眼掉），引入 ammoDirty 标志位，只在 Shoot 完成和 Reload 协程结束时置 true 才刷。第三是 Raycast 不传 LayerMask，子弹能打穿墙、还能打到自己 Layer 上的物体，按阶段②的设计引入 LayerMask：玩家身上勾三层（Player+Enemy+Obstacle）、敌人身上勾两层（Player+Obstacle 不勾自己防自伤）。两边勾的差异踩了三次才拍板：玩家要看子弹被队友挡、敌人不需要找自己。
+
+顺带扫到一个 CS0108 警告，字段名撞了 Component.audio 保留字。Shadowing 是合法但不推荐，四联动改 sfx（PlayerShooting 四个引用点 + Inspector 不会丢引用因为字段名同义）。
+
+ 二、 阶段③真伤害闭环
+
+接 EnemyAttack 调原型。NavMeshAgent 取玩家距离，3 米内进入攻击态，每隔 Attack Cooldown 秒扣玩家 5 血。EnemyHealth 同步写：受伤扣血、堆到 0 停追 + 找战斗组件引用销毁。
+
+中间踩了一个离谱的坑，误改 Attack Cooldown=0，玩家一秒被打成筛子秒死，回查调回 1。
+
+敌人随机攻击间隔由固定 2 秒改成 Random.Range(1, 5)，打破节拍器让玩家来不及预判。
+
+ 三、 阶段④死亡闭环开搞
+
+GameOverManager 接死亡面板，默认 SetActive(false)，监听 R 键重启 SceneManager.LoadScene 当前场景名。PlayerHealth.Die() 三件套：关 PlayerController + 关 PlayerShooting + Show GameOver。第一版拆成三独立 if，敌人还会动但人死了，留半成品。修法是 && 短路原子操作：三个组件同时非 null 才执行，否则 Debug.LogError 打印缺组件名。多步骤一个动作必须 atomic，老病 8.5 犯再记一笔。
+
+UI 三件套 Canvas / GameOverPanel / GameOverText 搭起来：Panel 默认隐藏，血条挂另外的 Text。
+
+四、 阶段④血条 PlayerHUD 的四个雷
+
+PlayerHUD 用轮询模式（每帧读 CurrentHealth，变化超阈值才刷文字）零耦合，框架跟 PlayerHealth 解耦。写完三查扫出四个雷：
+
+1. 类名 vs 实例名：Update 里 PlayerHealth.Xxx 大写写成蓝图名了，应该用 Inspector 拖进来的实例 playerHealth.Xxx，老病 10 犯第二撞。
+2. 差值没 Abs：玩家加血的时候 current > lastShown，差值出负的，Mathf.Abs 包一下才不漏刷。
+3. Start 预设哨兵堵首刷：原本想在 Start 里 lastShown = MaxHealth，结果开局正好相等不再刷血条。删 Start 那一行，回退哨兵值 -1f 强制首刷。
+4. 缺 RoundToInt：浮点直接拼接出 89.99998/100，两边套 Mathf.RoundToInt，肉眼干净。
+
+修完过了。
+
+五、 受伤红闪 DamageFlash 与一段接近崩溃的下午
+
+第一版全屏红闪想糊脸上让玩家"我疼"。Image 组件 + 改颜色 alpha，0.35 起步 0.15 秒褪，过审。挂上去 Console 报 Can't add script + No MonoBehaviour scripts in the file，搞了足足两小时。
+
+排查走偏了：第一猜文件名/类名不匹配（老病 11 犯），截图显示两边都对。真凶不在报错指向处——报错只说"这个类找不到"，但 C# 项目一损俱损，任何文件编译挂都拖全项目下水。第二步开 Console，揪到 EnemyAI 里改字段名改了半截：typo maxAttackCoolDOwn 字段名还残留着，两处必须联动改，改了一个 git 没自动改另一个。
+
 
 
