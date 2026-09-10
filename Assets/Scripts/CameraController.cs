@@ -6,12 +6,10 @@ public class CameraController : MonoBehaviour
 {
     private float pitch;
     public float mouseSensitivity = 1f;
-    // Start is called before the first frame update
-    void Start()
-    {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
+    public float recoilUp = 2f;
+    private float originalPitch;
+    private Coroutine recoilCo;
+
     void LateUpdate()
     {
 
@@ -22,5 +20,38 @@ public class CameraController : MonoBehaviour
 
         transform.localRotation = Quaternion.Euler(pitch,0f,0f);
 
+    }
+
+    public void ApplyRecoil()
+    {
+        originalPitch = pitch;
+        if (recoilCo != null)
+        {
+            StopCoroutine(recoilCo);
+        }
+        StartCoroutine(RecoilRoutine());
+    }
+
+    IEnumerator RecoilRoutine()
+    {
+        float targetPitch = originalPitch + recoilUp;
+        while (pitch < targetPitch)
+        {
+            if (Input.GetAxis("Mouse Y") != 0f)
+            {
+                yield break;
+            }
+            pitch = Mathf.MoveTowards(pitch, targetPitch, 0.2f);
+            yield return null;
+        }
+        while(pitch > originalPitch)
+        {
+            if (Input.GetAxis("Mouse Y") != 0f)
+            {
+                yield break;
+            }
+            pitch = Mathf.MoveTowards(pitch, originalPitch, 0.05f);
+            yield return null;
+        }
     }
 }

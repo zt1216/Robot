@@ -43,3 +43,6 @@ sysinfo.txt
 # Editor tooling (CodeBuddy/codely LSP)
 .codely-cli/
 .com-unity-codely.json
+
+# Backup files
+*.bak
