@@ -23,6 +23,14 @@ public class EnemyAI : MonoBehaviour
 
     void Start()
     {
+        if(player == null)
+        {
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if(p != null)
+            {
+                player = p.transform;
+            }
+        }
         agent = GetComponent<NavMeshAgent>();
         PickNewPatrolPoint();
     }

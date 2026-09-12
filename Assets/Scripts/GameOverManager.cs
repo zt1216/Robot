@@ -18,7 +18,7 @@ public class GameOverManager : MonoBehaviour
             }
         }
     }
-    public void Show()
+    public void Show() 
     {
         gameOverPanel.SetActive(true);
         isDead = true;
