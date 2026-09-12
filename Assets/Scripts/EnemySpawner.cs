@@ -20,6 +20,17 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
+    void Start()
+    {
+        if(MainMenu.loadSave ==true)
+        {
+            int saved = PlayerPrefs.GetInt("SavedWave", 0);
+            if(saved > 0)
+            {
+                wave = saved - 1;
+            }
+        }
+    }
     void Update()
     {
         if (toSpawn > 0)
@@ -45,6 +56,7 @@ public class EnemySpawner : MonoBehaviour
     {
         wave++;
         toSpawn = 3 + wave * 2;
+        PlayerPrefs.SetInt("SavedWave", wave);
     }
     void SpawnOne()
     {
