@@ -154,3 +154,40 @@ Wave UI 通了以后打完一波第二波不刷，排查发现 Hierarchy 里 6 �
 六、 小结
 
 一天干了两天的量。跳跃补完移动全家桶，Wave UI 给波次加了节奏反馈，尸体销毁修复打通刷怪闭环，晚上游戏外壳一口气完成大半：主菜单三按钮、存档系统（静态变量跨场景传旗子加 PlayerPrefs 随波写档）、死亡结算面板（战果显示加鼠标放出）、主菜单背景图。新知识点：静态变量跨场景、CursorLockMode 进出配对、Autostash。外壳就剩暂停一块砖。
+
+
+ 9月13日开发日志
+
+ 一、 暂停面板：最后一块外壳砖
+
+外壳就剩暂停，一口气砌完。PauseManager 核心就一个 API：Time.timeScale 等于 0 整个游戏世界冻结，等于 1 恢复。Esc 按键切换暂停和继续，Update 里 GetKeyDown 配 isPaused 布尔翻转决定走 Pause 还是 Resume，两条路各自做三件事：timeScale 置 0 或 1、面板 SetActive、鼠标锁定和放出（又是那对互逆操作，暂停放出、继续锁回）。
+
+首版三处错。Cursor.loclState 拼写——locl，红波浪线累计第 4 犯，被警告下次直接打回；BackToMenu 里写成了 timeScale 等于 0f，带着冻结回主菜单整个游戏卡死，记法"0 冻 1 走"，离开暂停的所有路径必须归 1，timeScale 是全局的还不随场景切换重置，等于把暂停状态带进了下一个场景；Resume 和 BackToMenu 写成了 private，按钮 OnClick 的下拉列表只认 public 方法，找不到方法名根本没法绑。改完过审。
+
+暂停做完立刻发现两个穿透 bug。第一个：暂停面板弹出来按鼠标左键，游戏里的枪照样突突突——timeScale 等于 0 冻的是游戏世界，Update 照跑、GetMouseButton 照读，timeScale 管不着 Update 里的输入代码，只管 deltaTime 之类的物理时间。修法是给所有读输入的 Update 开头加守门员：if (Time.timeScale == 0f) return; 一行流。第二个：枪不响了但视角还能上下转——俯仰在 CameraController 单独脚本里，守门员只加了开枪和移动，漏了相机。两个 bug 一个教训：守门员要加在"所有"读输入的脚本上，一个个排查，PlayerShooting、PlayerController、CameraController 三处全加。
+
+最后一个是编辑器专属假象：Play 模式按 Esc，Unity 编辑器自己先把鼠标解锁了（防玩家被锁死的保护机制），代码里的重锁被压制，表现为继续游戏后鼠标还是解锁状态。这是编辑器行为不是代码 bug，打包版没这特权，留给 Build 验证。顺手学到 Update 和 FixedUpdate 的区别有了新例子：timeScale 等于 0 时 Update 照跑（deltaTime 变 0）、FixedUpdate 彻底停、WaitForSeconds 也停——面试聊生命周期的好素材。
+
+二、 切枪系统：单值升数组
+
+本来在纠结做打击感还是切枪，拍板先切枪——两把枪手感差异是射击游戏的地基。选的数据驱动思路：射击逻辑一行不动，把六个单值字段（targetDamage、enemyDamage、fireRate、reloadTime、magSize，加上派生的 currentAmmo）全部升数组，加一个 weaponIndex 索引，所有原来读单值的地方改成读数组加索引。加第三把枪不用改逻辑，数组多一项自动跟上——这就是逻辑与数据分离。
+
+currentAmmo 是运行时字段不能写死初始化，Start 里 new int[magSize.Length] 开数组，for 循环按 magSize 逐项填满，数组长度自动对齐。切枪三件套：weaponIndex 等于 1 减 weaponIndex（两把枪 0 1 互切最省事，要是三把枪以上就得换加加取模）、lastShootTime 等于 Time.time（切枪瞬间重置射速冷却，防止步枪突突突半路按 Q 切手枪白嫖一枪）、ammoDirty 等于 true（弹药 UI 刷新旗子）。
+
+代码本身打得跌跌撞撞。currentAmmo 被拼成 currentAmmop，加上丢了自减符号，一行里俩错，打回两次才修对——第 5 犯红波浪线，打回机制立威了。
+
+真正的坑在 Inspector。字段类型从 int 改成 int[] 后 Unity 把旧值塞进索引 0，五个数组全变 Size=1 甚至空，第二把枪的数据全丢。手动扩：点开数组 Size 改成 2，Element 1 填新枪参数（步枪 30 发 0.2 秒射速换弹 1.5 秒伤 34，手枪 8 发 0.8 秒 2.2 秒伤 90）。中途 Inspector 死活不出数组视图，排查半天是脚本没存盘 Unity 没触发重编译，Ctrl+S 切回 Unity 等转圈编译完，再点别的物体点回来强制重画，数组视图才出来。以后改完字段类型先存盘再看 Inspector。
+
+验收时撞上预告过的坑：手枪换弹中按 Q 切步枪，步枪还在换弹状态不能开火。原因是 Reload 协程一旦启动就自己跑倒计时，切枪只换了 weaponIndex 拦不住协程，isReloading 旗子还是 true；更阴的是协程等完 WaitForSeconds 之后读的 currentAmmo[weaponIndex] 已经是新枪索引，等于给步枪凭空填弹。修法在 Q 按键块加两行：StopAllCoroutines() 掐死换弹协程，isReloading 等于 false 手动放旗子——协程被掐死时尾部复位那行不会执行，不放旗子枪就永远卡在换弹状态。StopAllCoroutines 掐的是这个脚本上所有协程，现在脚本里只有 Reload 没副作用，以后多协程并存就得 StopCoroutine 精确掐。改完验收四件全过：Q 切换流畅、两枪手感一快一慢、弹药各记各的、切枪瞬间无白嫖。
+
+三、 受击闪白：juice 三件套第一件
+
+打击感开工。先分清方向：屏幕边缘红闪是"我被打"的反馈，缺的是"我打中敌人"的反馈——子弹打上去敌人默默扣血，打没打中全靠敌人倒不倒地猜。三件套按性价比排序：受击闪白最便宜先做，飘字和死亡爆炸排后面。
+
+实现挂在 EnemyHealth 上，四样东西：Renderer 缓存、originalColor 缓存、flashColor 和 flashDuration 两个可调参数。TakeDamage 里扣血之后死亡判断之前调 Flash()——保证最后一枪也能闪一下再死。Flash 把 material.color 刷成 flashColor，起协程等 0.1 秒恢复原色。两个关键点：一是用 rend.material 而不是 rend.sharedMaterial——material 访问器 Unity 自动克隆一份独立实例，多个敌人各自闪各自的，sharedMaterial 是共用母版改一个全体遭殃；二是 originalColor 必须在 Start 缓存，不然恢复的是 C# 默认的 (0,0,0,0) 透明黑，第一枪过后敌人集体炭烤——首稿正好把这行抄漏了，被指出后补上过审。
+
+验收：步枪扫过去每个胶囊体白一下弹回来，Inspector 里颜色和时长可调。
+
+四、 小结
+
+上午暂停面板收尾，外壳正式完工；晚上切枪系统加受击闪白，手感维度补了两块。今天最大收获是两个结构性思维：数据驱动（字段升数组，逻辑零改动支持 N 把枪）和状态所有权（协程启动后自跑，切枪打断要 Stop 加手动复位旗子配对）。Inspector 字段类型变更不刷新的排查也记下了：先存盘触发重编译，再重选物体强制重画。待办：commit 推送切枪加闪白、juice 剩飘字和死亡爆炸、jumpHeight 等场景定型再调、打包验证 Esc。
