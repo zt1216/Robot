@@ -6,10 +6,13 @@ using UnityEngine.UI;
 public class PlayerShooting : MonoBehaviour
 {
     public GameObject ball;
-    public int targetDamage = 1;
-    public int enemyDamage = 34;
-    public int magSize = 30;
-    public int currentAmmo;
+    public int[] targetDamage = { 1, 3 };
+    public int[] enemyDamage = { 34, 90 };
+    public float[] fireRate = { 0.2f, 0.8f };
+    public float[] reloadTime = { 1.5f, 2.2f };
+    public int[] magSize = { 30, 8 };
+    public int[] currentAmmo;
+    public int weaponIndex = 0;
     public Text currentAmmoText;
     private bool ammoDirty = true;
     private float lastShootTime = 0f;
@@ -21,8 +24,12 @@ public class PlayerShooting : MonoBehaviour
 
     void Start()
     {
-        currentAmmo = magSize;
-        currentAmmoText.text = currentAmmo + "/" + magSize;
+        currentAmmo = new int[magSize.Length];
+        for(int i = 0;i < magSize.Length;i++)
+        {
+            currentAmmo[i] = magSize[i];
+        }
+        currentAmmoText.text = currentAmmo[weaponIndex] + "/" + magSize[weaponIndex];
         sfx = GetComponent<AudioSource>();
         ammoDirty = false;
     }
@@ -32,11 +39,19 @@ public class PlayerShooting : MonoBehaviour
         {
             return;
         }
+        if(Input.GetKeyDown(KeyCode.Q))
+        {
+            weaponIndex = 1 - weaponIndex;
+            StopAllCoroutines();
+            isReloading = false;
+            lastShootTime = Time.time;
+            ammoDirty = true;
+        }
         Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0));
         RaycastHit hit;
-        if (Input.GetMouseButton(0) && isReloading == false && currentAmmo > 0)
+        if (Input.GetMouseButton(0) && isReloading == false && currentAmmo[weaponIndex] > 0)
         {
-            if (Time.time - lastShootTime >= 0.2f)
+            if (Time.time - lastShootTime >= fireRate[weaponIndex])
             {
                 if (Physics.Raycast(ray, out hit, 100f,hitMask))
                 {
@@ -44,19 +59,19 @@ public class PlayerShooting : MonoBehaviour
 
                     if (shoot != null)
                     {
-                        shoot.TakeDamage(targetDamage);
+                        shoot.TakeDamage(targetDamage[weaponIndex]);
                     }
                     EnemyHealth enemy = hit.collider.GetComponent<EnemyHealth>();
                     if(enemy != null)
                     {
-                        enemy.TakeDamage(enemyDamage);
+                        enemy.TakeDamage(enemyDamage[weaponIndex]);
                     }
                     Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1f);
                     GameObject ball1 = Instantiate(ball, hit.point, Quaternion.identity);
                     Destroy(ball1, 2f);
                 }
                 lastShootTime = Time.time;
-                currentAmmo--;
+                currentAmmo[weaponIndex]--;
                 ammoDirty = true;
                 if(cameraController != null)
                 {
@@ -68,7 +83,7 @@ public class PlayerShooting : MonoBehaviour
                 }
             }
         }
-        if(isReloading == false && currentAmmo <= 0)
+        if(isReloading == false && currentAmmo[weaponIndex] <= 0)
         {
             StartCoroutine(Reload());
         }
@@ -82,7 +97,7 @@ public class PlayerShooting : MonoBehaviour
         
         if(ammoDirty)
         {
-            currentAmmoText.text = currentAmmo + "/" + magSize;
+            currentAmmoText.text = currentAmmo[weaponIndex] + "/" + magSize[weaponIndex];
             ammoDirty = false;
         }
     }
@@ -90,8 +105,8 @@ public class PlayerShooting : MonoBehaviour
     IEnumerator Reload()
     {
         isReloading = true;
-        yield return new WaitForSeconds(1.5f);
-        currentAmmo = magSize;
+        yield return new WaitForSeconds(reloadTime[weaponIndex]);
+        currentAmmo[weaponIndex] = magSize[weaponIndex];
         ammoDirty = true;
         isReloading = false;
     }

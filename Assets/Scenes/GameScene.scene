@@ -3040,10 +3040,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ball: {fileID: 8097211484142699783, guid: 13104bc01ff83b24eba2a0b8e6eadba4, type: 3}
-  targetDamage: 1
-  enemyDamage: 34
-  magSize: 30
-  currentAmmo: 0
+  targetDamage: 0100000003000000
+  enemyDamage: 220000005a000000
+  fireRate:
+  - 0.2
+  - 0.8
+  reloadTime:
+  - 1.5
+  - 2.2
+  magSize: 1e00000008000000
+  currentAmmo: 
+  weaponIndex: 0
   currentAmmoText: {fileID: 812534968}
   cameraController: {fileID: 2138060372}
   shootClip: {fileID: 8300000, guid: 85bd3f9c5baaadc4ba46c05f0593b57d, type: 3}
@@ -3096,6 +3103,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashDuration: 0.1
 --- !u!1 &1643729342
 GameObject:
   m_ObjectHideFlags: 0
