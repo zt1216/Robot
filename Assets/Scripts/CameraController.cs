@@ -12,7 +12,10 @@ public class CameraController : MonoBehaviour
 
     void LateUpdate()
     {
-
+        if (Time.timeScale == 0f)
+        {
+            return;
+        }
         float mouseY = Input.GetAxis("Mouse Y");
         
         pitch -= mouseY * mouseSensitivity;

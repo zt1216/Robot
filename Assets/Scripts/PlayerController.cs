@@ -30,6 +30,10 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        if(Time.timeScale == 0f)
+        {
+            return;
+        }
         bool isCrouching = Input.GetKey(KeyCode.LeftControl);
         bool isSneaking = Input.GetKey(KeyCode.LeftShift);
         float speed = walkSpeed;

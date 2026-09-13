@@ -28,6 +28,10 @@ public class PlayerShooting : MonoBehaviour
     }
     void Update()
     {
+        if(Time.timeScale == 0f)
+        {
+            return;
+        }
         Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0));
         RaycastHit hit;
         if (Input.GetMouseButton(0) && isReloading == false && currentAmmo > 0)
