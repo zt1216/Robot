@@ -105,3 +105,52 @@ UI 嵌套布局铁律：先铺满父、再搭子。
 9月11日开发日志
 
 课多忙不过来了，写了一点记入9月12开发中
+
+
+9月12日开发日志
+
+一、 刷怪器落地与 SpawnPoint 布置
+
+EnemySpawner 挂到场景空物体后开验收，Inspector 数组槽里没有东西可拖——四个 SpawnPoint 得自己在场景里建。建了四个空物体（E/W/N/S 东南西北四个方向命名），Transform 摆到掩体外围四面边缘（大约正负 20），Y 等于 0 贴地。怪从场景边缘刷是有意设计：怪刷脸上玩家没反应时间等于白掉血，刷在边缘怪要走一段路，玩家有时间转视角换弹找掩体；四面受敌的紧张感正是波次生存游戏的压力来源，COD 僵尸模式、L4D、DOOM 全是玩家视野外刷怪的行业惯例。
+
+SpawnPoint 摆完 Play，怪出来了但一帧爆 7 条 NRE——7 个怪同时 Update 报同一个错。堆栈指向 EnemyAI 的 player 字段没拖。想回 Prefab 编辑模式把场景里的 Player 拖进去，Unity 不让拖——学了一课：Prefab 是资产，资产不能引用场景里的对象，不然这个 Prefab 拖到别的场景就废了，这是 Unity 设计如此不是操作错误。运行时 Instantiate 出来的怪继承的是 Prefab 的状态，所以场景引用必须在运行时用代码找。修法是 EnemyAI 的 Start 里加自动找：GameObject.FindGameObjectWithTag("Player") 拿到再取 transform，注意是单数 Object 的那个（FindGameObjectsWithTag 复数版返回数组，又一个容易混的 API 对）。
+
+二、 空格跳跃
+
+PlayerController 加跳跃，三个新概念。一、controller.isGrounded：CharacterController 自带属性，脚下踩着东西就是 true，跳跃必须先判落地否则按住空格无限跳上天。二、垂直速度自己积分：水平移动每帧 Move 就完了，但跳跃是物理过程，起跳给向上初速度、每帧被重力往下拽、落地归零，要养一个 verticalVelocity 字段每帧变。三、跳跃初速度公式 v 等于根号下 2gh：verticalVelocity 等于 Mathf.Sqrt(jumpHeight 乘 -2f 乘 gravity)，跳 1.5 米重力 -20，套公式就是精确值。这个公式面试能聊。
+
+实现里 isGrounded 分支先钳 verticalVelocity 等于 -1f 防负值累积越掉越快，Input.GetKeyDown(KeyCode.Space) 用 Down 不用 GetKey（Down 是按下那一帧，GetKey 是按住期间每帧 true，用错就按住空格连跳成仙）。空中分支 verticalVelocity 加 gravity 乘 Time.deltaTime 积分重力。最后把 verticalVelocity 塞进 moveDir 的 y 分量再 Move，TransformDirection 只有 yaw 旋转没有俯仰，y 分量过去还是 y 放心塞。
+
+首版两处错：moveDir 拼成 moveDie、Sqrt 那行少分号，都是红波浪线级别的错等于三查第一查没走。改完过审。落地不抖不穿地、按住空格只跳一次、边跑边跳方向不歪，三件验收全过。jumpHeight 1.5 偏蹦床，TPS 建议降到 1.0 到 1.2 重力拉到 -25 到 -30 更利索，回头场景定型再调。
+
+三、 Wave 计数 UI 与两个祖传 bug
+
+EnemySpawner 的 wave 字段是 private 外部读不到，照 PlayerHealth 里 MaxHealth 的老路加了一行属性 public int CurrentWave 只读暴露。WaveHUD 脚本照抄 PlayerHUD 的哨兵套路：两个判空、取 CurrentWave、跟 lastShown 不一样才更新文字，int 直接用不等于判断不用浮点容差那套。
+
+首版三处错。最重的一处是取错数据：写了 enemySpawner.toSpawn——toSpawn 是这波还剩几只没刷，不是第几波，而且它还是 private 编译直接挂。toSpawn、wave、AliveCount 三个数据各管一摊（波数、待刷数、场上存活数），拿错数据等于显示逻辑全错但一行红波浪线没有，这种错 IDE 抓不住只能靠自己读。另外两处小错：int 声明的哨兵塞了 -1f（整数家里放小数编译器不认），字符串 Wave 后面少空格显示成 Wave3 黏一块。
+
+Wave UI 通了以后打完一波第二波不刷，排查发现 Hierarchy 里 6 只 Enemy(Clone) 全活着——不是波次逻辑坏，是有怪没死透。真凶是敌人死亡只把血归零没有销毁物体，尸体 Tag 还是 Enemy，FindGameObjectsWithTag 照样数进去，AliveCount 永远不等于零，喘息分支永远进不去。修法一行：扣血脚本血量小于等于零的分支最后加 Destroy(gameObject)。Destroy 放最后，它一跑物体直接消失，写在后面的代码等于没写。以后想要尸体躺一会儿的效果可以换协程 WaitForSeconds 再 Destroy，现在直接销毁就行。
+
+修完整个闭环打通：移动全家桶、射击全家桶、敌人 AI、波次刷怪、Wave 计数、死亡重开。TPS 从技术 demo 变游戏的一天。commit 推 Gitee 中途老剧本连踩两坑：先忘了 cd 到项目目录在 system32 下跑 git（没 .git 当然炸），后远程领先 fetch first 老朋友 pull --rebase 解决。commit ab4056a5 落地。
+
+四、 游戏外壳开工：主菜单与存档
+
+功能闭环了该套壳。现有场景另存为 Assets/Scenes/GameScene 归位，新建 Empty 场景做 MainMenu（Empty 不带相机灯光——Canvas 用 Screen Space Overlay 直接画屏幕上不靠相机，留个相机空跑没必要）。搭 Canvas 加标题加开始和退出两个按钮，脚本两个方法：StartGame 里 SceneManager.LoadScene 进战斗场景，QuitGame 里 Application.Quit。Application.Quit 编辑器 Play 模式没反应是正常的，只对打包 exe 生效，想验证绑对了加句 Debug.Log。Build Settings 两个场景都加进列表、MainMenu 排第 0 位，漏了这步 LoadScene 直接报 Scene couldn't be loaded。首版多拼了一行 using UnityEngine.SenceManagement（SceneManagement 拼错，正确那行已经在上面了这行纯属多余），红波浪线又漏网。
+
+存档系统选了进度档不是最高纪录：打到 Wave 5 点继续游戏直接从 Wave 5 接着打。核心问题是跨场景传数据——场景一切换之前的对象全没了，入门解法静态变量：static bool loadSave 挂在类本身上不属于任何物体，场景切换不销毁，类名直接点访问。开始游戏设 false 继续游戏设 true，两条路进同一个 GameScene。EnemySpawner 两个口子：Start 里读档（MainMenu.loadSave 为 true 时 wave 等于 PlayerPrefs.GetInt 的 SavedWave 减一，这样第一波 wave 加加以后正好从存档那波重打；外面包一层 saved 大于 0 的守卫防第一次玩出 Wave 0），StartWave 里写档（每波开刷瞬间 SetInt，波次推进就存，中途闪退不亏，这是随时存和死亡存的思路差别）。
+
+这块三轮迭代暴露三个错。PlayerPreff 拼写不用补全根本拼不对；PlayerPrefs.GetInt 当 SetInt 用——想存钱做了个查询动作啥也没存进去，而且 GetInt 吐了返回值没接没空转，返回值必接的老病第 8 犯；最阴的是把两个方案都塞进 Start 互相打架——if 外面一行无条件 wave 等于存档减一，if 里面又一行 wave 等于存档原值，新开局也被存档污染。两分支方案只能选一个是单选题不是多选题。改完单一路径过审。
+
+五、 死亡结算面板与主菜单背景
+
+死亡面板有旧底子：GameOverManager 的 Show() 外部调用式触发（PlayerHealth 死了喊一声，比 Update 轮询血量干净，保留），R 键快捷重开也保留跟按钮并存。在旧版上补四样：波数显示（取 enemySpawner.CurrentWave 拼进你死了活到 Wave 几）、鼠标放出、回主菜单按钮、两个按钮的路由方法。
+
+3D 特有的坑：PlayerController 的 Start 把鼠标锁了藏了，死亡面板弹出来鼠标还锁在屏幕中间，按钮根本点不了干瞪眼。所以 Show() 里必须 Cursor.lockState 等于 CursorLockMode.None 加 Cursor.visible 等于 true 把鼠标放出来。首版把这行写反成了 Locked（继续锁死），记法是进游戏锁出弹窗放，一来一回互逆操作。判空守卫也补上——Show() 开头三连判空，这个守卫有个副作用：哪个槽没拖，保护了不崩但也把没挂引用从 NRE 爆炸变成静默失败，死不弹面板排查时先看四个槽有没有值。当晚真就踩了这个：新槽没拖，Show() 一进来撞判空 return，面板的 SetActive 根本执行不到。拖上就通。
+
+主菜单背景太黑不好看，生成了一张末日废土低多边形风格的背景图（黄昏色调上半截天空留白正好压标题）。接入四步：图拖进 Assets（建 Textures 文件夹归置），Texture Type 改成 Sprite (2D and UI) 再 Apply（UI 的 Image 只吃 Sprite 不改这步拖不进 Source Image），Canvas 下建 Image 按住 Alt 点 stretch-stretch 铺满全屏，最后把 Background 在 Hierarchy 里拖到最前面垫底——UI 渲染顺序就是 Hierarchy 顺序，后建的 Image 插在最后会盖住标题和按钮。
+
+当天收尾 commit 推送，pull --rebase 被本地未暂存改动拦住（编辑器里又改了点东西没进 Git），一行流解法 git pull --rebase --autostash：自动 stash 未暂存改动、拉远程、rebase、自动 pop 回来。
+
+六、 小结
+
+一天干了两天的量。跳跃补完移动全家桶，Wave UI 给波次加了节奏反馈，尸体销毁修复打通刷怪闭环，晚上游戏外壳一口气完成大半：主菜单三按钮、存档系统（静态变量跨场景传旗子加 PlayerPrefs 随波写档）、死亡结算面板（战果显示加鼠标放出）、主菜单背景图。新知识点：静态变量跨场景、CursorLockMode 进出配对、Autostash。外壳就剩暂停一块砖。
