@@ -6,12 +6,26 @@ using UnityEngine.AI;
 public class EnemyAI : MonoBehaviour
 {
     public Transform player;
-    private NavMeshAgent agent;
-    private Vector3 patrolTarget;
+
+    [Header("Detect / Attack range")]
+    public float detectRange = 15f;
+    public float loseRange = 20f;
+    public float attackRange = 5f;
+    public float breakAttackRange = 8f;
+
+    [Header("Attack")]
+    public float attackDamage = 10f;
     public float minAttackCooldown = 1f;
     public float maxAttackCooldown = 5f;
-    private float nextAttackTime;
+
     public LayerMask hitMask;
+
+    [Header("Debug")]
+    public bool debugLog = false;
+
+    private NavMeshAgent agent;
+    private float nextAttackTime;
+
     enum EnemyState
     {
         Patrol,
@@ -23,29 +37,44 @@ public class EnemyAI : MonoBehaviour
 
     void Start()
     {
-        if(player == null)
+        agent = GetComponent<NavMeshAgent>();
+
+        if (player == null)
         {
-            GameObject p = GameObject.FindGameObjectWithTag("Player");
-            if(p != null)
+            PlayerHealth ph = FindObjectOfType<PlayerHealth>();
+            if (ph != null)
             {
-                player = p.transform;
+                player = ph.transform;
             }
         }
-        agent = GetComponent<NavMeshAgent>();
-        PickNewPatrolPoint();
+
+        if (agent != null)
+        {
+            PickNewPatrolPoint();
+        }
     }
 
     void Update()
     {
+        if (player == null)
+        {
+            return;
+        }
+        if (agent == null)
+        {
+            return;
+        }
+
+        float distToPlayer = Vector3.Distance(player.position, transform.position);
+
         switch (state)
         {
             case EnemyState.Patrol:
-                
                 if (agent.remainingDistance <= 2f)
                 {
                     PickNewPatrolPoint();
                 }
-                if(Vector3.Distance(player.position,transform.position) <= 15f)
+                if (distToPlayer <= detectRange)
                 {
                     state = EnemyState.Chase;
                 }
@@ -53,13 +82,13 @@ public class EnemyAI : MonoBehaviour
 
             case EnemyState.Chase:
                 agent.SetDestination(player.position);
-                if (Vector3.Distance(player.position,transform.position) <= 3f)
+                if (distToPlayer <= attackRange)
                 {
                     agent.updateRotation = false;
                     agent.isStopped = true;
                     state = EnemyState.Attack;
                 }
-                if(Vector3.Distance(player.position,transform.position) > 20f)
+                else if (distToPlayer > loseRange)
                 {
                     state = EnemyState.Patrol;
                     PickNewPatrolPoint();
@@ -67,40 +96,64 @@ public class EnemyAI : MonoBehaviour
                 break;
 
             case EnemyState.Attack:
-                Vector3 ToTargetDir = player.position;
-                ToTargetDir.y = transform.position.y;
-                transform.LookAt(ToTargetDir);
-                if (Vector3.Distance(player.position, transform.position) > 8f)
+                Vector3 lookAt = player.position;
+                lookAt.y = transform.position.y;
+                transform.LookAt(lookAt);
+
+                if (distToPlayer > breakAttackRange)
                 {
                     agent.isStopped = false;
                     agent.updateRotation = true;
                     state = EnemyState.Chase;
-                }
-                if(Time.time >= nextAttackTime)
-                {
-                    Vector3 dir = player.position - transform.position;
-                    float dist = dir.magnitude;
-                    if(Physics.Raycast(transform.position,dir,out RaycastHit hit,dist,hitMask))
-                    {
-                        if(hit.collider.CompareTag("Player"))
-                        {
-                            player.GetComponent<PlayerHealth>().TakeDamage(10f);
-                        }
-                    }
-                    nextAttackTime = Time.time + Random.Range(minAttackCooldown,maxAttackCooldown);
+                    return;
                 }
 
+                if (Time.time >= nextAttackTime)
+                {
+                    TryAttack(distToPlayer);
+                    nextAttackTime = Time.time + Random.Range(minAttackCooldown, maxAttackCooldown);
+                }
                 break;
         }
-
     }
+
+    void TryAttack(float distToPlayer)
+    {
+        Vector3 origin = transform.position;
+        Vector3 toPlayer = player.position - origin;
+        Vector3 dir = toPlayer.normalized;
+
+        if (Physics.Raycast(origin, dir, out RaycastHit hit, distToPlayer, hitMask))
+        {
+            if (debugLog)
+            {
+                Debug.Log("[EnemyAI] ray hit: " + hit.collider.name + " / tag=" + hit.collider.tag);
+            }
+
+            PlayerHealth ph = hit.collider.GetComponentInParent<PlayerHealth>();
+            if (ph != null)
+            {
+                ph.TakeDamage(attackDamage);
+            }
+            else if (debugLog)
+            {
+                Debug.Log("[EnemyAI] hit but no PlayerHealth on it or parents");
+            }
+        }
+        else if (debugLog)
+        {
+            Debug.Log("[EnemyAI] ray missed");
+        }
+    }
+
     void PickNewPatrolPoint()
     {
         Vector3 near = Random.insideUnitSphere * 10f;
-        near.y = 0;
-        patrolTarget = transform.position + near;
-        bool canGo = NavMesh.SamplePosition(patrolTarget,out NavMeshHit hit, 20f, NavMesh.AllAreas);
-        if(canGo)
+        near.y = 0f;
+        Vector3 target = transform.position + near;
+
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(target, out hit, 20f, NavMesh.AllAreas))
         {
             agent.SetDestination(hit.position);
         }

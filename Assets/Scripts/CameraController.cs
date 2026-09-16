@@ -19,7 +19,7 @@ public class CameraController : MonoBehaviour
         float mouseY = Input.GetAxis("Mouse Y");
         
         pitch -= mouseY * mouseSensitivity;
-        pitch = Mathf.Clamp(pitch, -60f, 60f);
+        pitch = Mathf.Clamp(pitch, -30f, 40f);
 
         transform.localRotation = Quaternion.Euler(pitch,0f,0f);
 

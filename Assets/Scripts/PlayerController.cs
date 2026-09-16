@@ -4,77 +4,107 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    [Header("Move Speed")]
     public float walkSpeed = 5f;
-    public float mouseSensitivity = 1f;
-    private float yaw;
+    public float sprintSpeed = 8f;
     public float sneakSpeed = 2f;
-    public float crouchSpeed = 1f;
-    public Transform cam;
-    private CharacterController controller;
-    private float standHeight;
-    private Vector3 standCenter;
-    private float standCamY;
+
+    [Header("Mouse")]
+    public float mouseSensitivity = 1f;
+
+    [Header("Jump")]
     public float jumpHeight = 1f;
     public float gravity = -25f;
+
+    [Header("Anim")]
+    public float animSpeedScale = 0.6f;
+
+    private float yaw;
+    private CharacterController controller;
     private float verticalVelocity = 0f;
-    [SerializeField] private float crouchSmooth = 10f;
+    private Animator animator;
+
+    [Header("Sprint FOV")]
+    public Camera playerCamera;
+    public float normalFOV = 60f;
+    public float sprintFOV = 75f;
+    public float fovSmooth = 6f;
+
     void Start()
     {
+        animator = GetComponentInChildren<Animator>();
         controller = GetComponent<CharacterController>();
-        standHeight = controller.height;
-        standCenter = controller.center;
-        standCamY = cam.localPosition.y;
+        if(playerCamera == null)
+        {
+            playerCamera = Camera.main;
+        }
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
     void Update()
     {
-        if(Time.timeScale == 0f)
+        if (Time.timeScale == 0f)
         {
             return;
         }
-        bool isCrouching = Input.GetKey(KeyCode.LeftControl);
-        bool isSneaking = Input.GetKey(KeyCode.LeftShift);
+
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+        float mouseX = Input.GetAxis("Mouse X");
+
+        bool isSneaking = Input.GetKey(KeyCode.LeftControl);
+        bool isSprinting = Input.GetKey(KeyCode.LeftShift) && v > 0.1f;
+
         float speed = walkSpeed;
-        if(isSneaking && !isCrouching)
+        if (isSneaking)
         {
             speed = sneakSpeed;
         }
-        if(isCrouching)
+        else if (isSprinting)
         {
-            speed = crouchSpeed;
+            speed = sprintSpeed;
         }
-        float targetH = isCrouching ? 1.2f : standHeight;
-        Vector3 targetC = isCrouching ? new Vector3(standCenter.x, standCenter.y - 0.4f, standCenter.z) : standCenter;
-        float targetCY = isCrouching ? standCamY - 0.8f : standCamY;
-        float smooth = crouchSmooth * Time.deltaTime;
-        controller.height = Mathf.Lerp(controller.height, targetH, smooth);
-        controller.center = Vector3.Lerp(controller.center, targetC, smooth);
-        cam.localPosition = new Vector3(cam.localPosition.x, Mathf.Lerp(cam.localPosition.y, targetCY, smooth), cam.localPosition.z);
-        
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
 
-        float mouseX = Input.GetAxis("Mouse X");
-
-        if(controller.isGrounded)
+        if (controller.isGrounded)
         {
             verticalVelocity = -1f;
-            if(Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.Space))
             {
                 verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+                animator.SetBool("Jump", true);
             }
+            else
+            {
+                animator.SetBool("Jump", false);
+            }
+            animator.SetBool("FreeFall", false);
         }
         else
         {
             verticalVelocity += gravity * Time.deltaTime;
+            animator.SetBool("FreeFall", true);
         }
+        animator.SetBool("Grounded", controller.isGrounded);
         yaw += mouseX * mouseSensitivity;
         transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+        Vector3 inputDir = new Vector3(h, 0f, v);
+        if (inputDir.magnitude > 1f)
+        {
+            inputDir = inputDir.normalized;
+        }
 
-        Vector3 moveDir = new Vector3(h, 0f, v);
+        Vector3 moveDir = transform.TransformDirection(inputDir) * speed;
         moveDir.y = verticalVelocity;
-        controller.Move(transform.TransformDirection(moveDir) * speed * Time.deltaTime);
+        controller.Move(moveDir * Time.deltaTime);
+
+        animator.SetFloat("Speed", inputDir.magnitude * speed * animSpeedScale);
+        animator.SetFloat("MotionSpeed", 1f);
+        bool sprintActive = isSprinting && !isSneaking;
+        if (playerCamera != null)
+        {
+            float targetFOV = sprintActive ? sprintFOV : normalFOV;
+            playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFOV, fovSmooth * Time.deltaTime);
+        }
     }
 }
