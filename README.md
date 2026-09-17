@@ -191,3 +191,50 @@ currentAmmo 是运行时字段不能写死初始化，Start 里 new int[magSize.
 四、 小结
 
 上午暂停面板收尾，外壳正式完工；晚上切枪系统加受击闪白，手感维度补了两块。今天最大收获是两个结构性思维：数据驱动（字段升数组，逻辑零改动支持 N 把枪）和状态所有权（协程启动后自跑，切枪打断要 Stop 加手动复位旗子配对）。Inspector 字段类型变更不刷新的排查也记下了：先存盘触发重编译，再重选物体强制重画。待办：commit 推送切枪加闪白、juice 剩飘字和死亡爆炸、jumpHeight 等场景定型再调、打包验证 Esc。
+
+
+9月14日开发日志
+
+一、场景美术导入（Industrial Set v2.0）
+白盒地图终于可以退休了。导入工业风场景包 Industrial Set v2.0，把 Map_v1 摆进场景时发现两个问题：一是模型自带的 Scale 是 60，直接拖进来大到离谱，压回 1 才正常；二是模型原点不在脚底，顶层要抬高 Y=11.3 才能贴住地面。调完之后第一次感觉这个游戏"像个游戏"了。
+
+二、NavMesh 烤制
+照教程找 Navigation 窗口的 Bake 标签页，找不到——团结引擎的 Navigation 窗口根本没有这个页签。换路线：给地面挂 NavMeshSurface 组件，直接在组件上点 Bake，一样能烤。结论：教程和引擎版本对不上是常态，引擎里搜组件名比翻菜单靠谱。
+
+三、EnemySpawner 随机刷怪
+写了个 EnemySpawner 全场随机刷怪。难点不是"随机取点"，是"随机取的点能用"：直接 Random.Range 取的点可能悬空、卡墙、或者刷在玩家脸上。最后是三重过滤：取的点先吸附到 NavMesh 上（范围 2f），离玩家小于 10 米的丢掉，再用 CheckSphere（半径 0.6）确认没卡在墙里。以上任何一关失败就重试，最多试 10 次，保底总有怪刷出来。
+
+四、角色方案敲定
+敌人要人形模型，先想到 mixamo，结果已经访问不了（DNS 解析失败）。quaternius.com 能开，但全是 Q 版外星人，跟科幻机器人不搭。最后定了 Unity 官方 Starter Assets - ThirdPersonController 里的 SpaceRobotKyle：免费，自带 Prefab（挂好 Animator 和 Controller）、8 条 Locomotion 动画、完整五指骨骼（手骨叫 Right_Hand，不是 mixamo 那套命名）。玩家和敌人以后靠改材质颜色区分，不另买敌人包。
+
+
+9月15日开发日志
+
+一、下蹲功能之死
+起因：下蹲时相机降了，但角色没有蹲的动作。跟着做了几版脚本改骨骼，最后全推翻——今天的主要产出其实是"想清楚要不要下蹲"。
+对标了一遍业界：战术射击（R6）里下蹲是核心机制，因为有掩体和隐蔽判定；而 Doom Eternal 这种持续移动的刷怪游戏根本不做下蹲，停下来的动作都是负收益。我这个游戏：敌人是 AI 直接追踪（不靠视线），没有掩体射击，蹲下反而降机动。结论：下蹲零 gameplay 收益，砍。
+
+二、双骨架大坑（今天最值钱的教训）
+砍之前折腾了很久 CrouchIK，过程中发现一个惊天大坑：RobotKyle 身上有两套骨架。外层 Skeleton 下那套（骨骼名带下划线，如 Right_UpperArm、Right_Hand）是死骨架——73 个 Transform 但一个渲染组件都没有，改它画面纹丝不动。真正驱动网格的是内嵌 FBX 实例的活骨架，路径在 Geometry > KyleRobot > RobotKile > ROOT > Hips 这条链下。
+我之前拖的骨骼引用、挂枪的父节点全在死骨架上，等于一直在给尸体做按摩。判别口诀：名字带下划线 = 死，Geometry 链下 = 活。
+另外两个技术点：团结引擎 1.8.5 没有 Animator.GetBoneLocalRotation（CS1061），只能降级用 GetBoneTransform().localRotation；Humanoid 的根骨骼位置被 Mecanim 锁死，想压低重心改 Hips 位置根本没用。
+
+三、三档移动（下蹲的替代方案）
+删了 CrouchIK，改成三档移动：LeftShift 冲刺（速度 8，只允许前进方向触发，防止倒退蹭速度）、默认行走（5）、LeftControl 静步（2）。静步优先级高于冲刺，因为"谨慎状态"逻辑上应该压过"狂奔状态"。
+顺手加了冲刺 FOV 拉伸（60 → 75，Lerp 平滑过渡），没这个冲刺手感很平。两个小坑：playerCamera 忘判空会 NRE 刷屏（Start 里加了 Camera.main 兜底）；Ctrl+Shift 同按时 FOV 得跟静步走，不然人慢走画面狂拉伸很怪。
+
+9月16日开发日志
+
+一、枪的 Y 坐标之谜
+一个困扰半天的 bug：编辑状态下枪的 position.y 是 0.002，一运行就变成 1。怀疑过有别的脚本在偷偷改坐标，把全项目 grep 了一遍，写 gun.localPosition 的只有 WeaponPose 一处。真相很无聊：WeaponPose 组件的 Gun Local Pos 字段 Y 就是 1（之前做测试填的忘了改回来），它每帧忠实地把枪设成 (x, 1, z)。
+由此搞清一个 Unity 核心机制：改 .cs 里的默认值不会刷新 Inspector 已有序列化的值，运行时真正生效的是 Inspector 里存的数。所以调枪只能改 Player 上 WeaponPose 组件的字段，改枪自己的 Transform 每帧都被覆盖，白改。之前"改了没反应"还因为 localPosition 受父级 Scale 影响（FBX 常见 0.01），小数值根本看不出变化。
+
+二、时刻持枪（WeaponHoldPose）
+需求：机器人时刻端着枪，走路不摆臂。方案是锁死手臂骨骼的 localRotation——注意跟下蹲时期的区别：下蹲用叠加（base * offset），每帧基准在变所以抖；这次用绝对赋值（= 固定值），LateUpdate 每帧把动画的结果覆盖掉，渲染前永远是我们说了算，不抖不拉扯。这是射击游戏的标准做法：上半身独立姿势，下半身跑动画。
+骨骼引用一律用 Animator.GetBoneTransform(HumanBodyBones.X) 自动获取，彻底绕开双骨架手动拖引用必错的坑。调姿势的正确姿势也搞明白了：Play 模式下直接改脚本的 public 字段实时预览（手动改骨骼每帧被动画+脚本双重覆盖，改了白改）。
+
+三、空中松手
+新问题：跳起来时手臂焊死在胸前很违和（起跳动画本来要摆臂）。解法是加一个过渡权重：Update 里读 Animator 的 Grounded 参数，落地权重趋近 1（锁姿势），空中趋近 0（动画自由摆臂），MoveTowards 平滑过渡，SetBone 里改成 Slerp(当前, 目标, 权重)。落地自动收枪回姿势，过渡很自然。
+
+四、敌人资源选型
+哥布林 vs 变异蜥蜴纠结了一轮。蜥蜴信息全（四向走/撕咬/攻击/死亡、1.8 万面、团结兼容），但单一；哥布林包（Mixall Goblins，免费）三个换色变体天然对应三种怪，动画清单豪华：行走/奔跑/攻击×2/死亡/受击/跳跃/待机×2，单只约 1 万面，团结 1.6.7 内置管线兼容。选哥布林。
