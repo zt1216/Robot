@@ -25,6 +25,7 @@ public class EnemyAI : MonoBehaviour
 
     private NavMeshAgent agent;
     private float nextAttackTime;
+    private Animator anim;
 
     enum EnemyState
     {
@@ -38,6 +39,7 @@ public class EnemyAI : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        anim = GetComponent<Animator>();
 
         if (player == null)
         {
@@ -64,7 +66,10 @@ public class EnemyAI : MonoBehaviour
         {
             return;
         }
-
+        if(anim == null)
+        {
+            return;
+        }
         float distToPlayer = Vector3.Distance(player.position, transform.position);
 
         switch (state)
@@ -74,6 +79,7 @@ public class EnemyAI : MonoBehaviour
                 {
                     PickNewPatrolPoint();
                 }
+                anim.SetFloat("Speed", 1);
                 if (distToPlayer <= detectRange)
                 {
                     state = EnemyState.Chase;
@@ -82,6 +88,7 @@ public class EnemyAI : MonoBehaviour
 
             case EnemyState.Chase:
                 agent.SetDestination(player.position);
+                anim.SetFloat("Speed", 2);
                 if (distToPlayer <= attackRange)
                 {
                     agent.updateRotation = false;
@@ -99,7 +106,7 @@ public class EnemyAI : MonoBehaviour
                 Vector3 lookAt = player.position;
                 lookAt.y = transform.position.y;
                 transform.LookAt(lookAt);
-
+                anim.SetFloat("Speed", 0);
                 if (distToPlayer > breakAttackRange)
                 {
                     agent.isStopped = false;
@@ -110,6 +117,7 @@ public class EnemyAI : MonoBehaviour
 
                 if (Time.time >= nextAttackTime)
                 {
+                    anim.SetTrigger("Attack");
                     TryAttack(distToPlayer);
                     nextAttackTime = Time.time + Random.Range(minAttackCooldown, maxAttackCooldown);
                 }

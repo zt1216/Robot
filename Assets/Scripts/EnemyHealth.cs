@@ -11,21 +11,32 @@ public class EnemyHealth : MonoBehaviour
     private Color originalColor;
     public Color flashColor = Color.white;
     public float flashDuration = 0.1f;
+    private Animator anim;
+    private bool isDead = false;
     void Start()
     {
         currentHealth = maxHealth;
-        rend = GetComponent<Renderer>();
-        originalColor = rend.material.color;
+        rend = GetComponentInChildren<Renderer>();
+        anim = GetComponent<Animator>();
+        if(rend != null)
+        {
+            originalColor = rend.material.color;
+        }
     }
 
     public void TakeDamage(float damage)
     {
+        if(isDead)
+        {
+            return;
+        }
         currentHealth -= damage;
         Flash();
         if(currentHealth <= 0)
         {
+            isDead = true;
             Die();
-            Destroy(gameObject);
+            StartCoroutine(DeathSequence());
         }
     }
 
@@ -52,5 +63,12 @@ public class EnemyHealth : MonoBehaviour
         GetComponent<Collider>().enabled = false;
         GetComponent<NavMeshAgent>().enabled = false;
         GetComponent<EnemyAI>().enabled = false;
+        anim.SetFloat("Speed", 0);
+        anim.Play("Death");
+    }
+    IEnumerator DeathSequence()
+    {
+        yield return new WaitForSeconds(anim.GetCurrentAnimatorStateInfo(0).length);
+        Destroy(gameObject);
     }
 }
