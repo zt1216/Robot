@@ -238,3 +238,28 @@ currentAmmo 是运行时字段不能写死初始化，Start 里 new int[magSize.
 
 四、敌人资源选型
 哥布林 vs 变异蜥蜴纠结了一轮。蜥蜴信息全（四向走/撕咬/攻击/死亡、1.8 万面、团结兼容），但单一；哥布林包（Mixall Goblins，免费）三个换色变体天然对应三种怪，动画清单豪华：行走/奔跑/攻击×2/死亡/受击/跳跃/待机×2，单只约 1 万面，团结 1.6.7 内置管线兼容。选哥布林。
+
+
+9月17日开发日志
+
+一、敌人模型落地（绕过官网那套把戏）
+敌人要动画，quaternius.com 的 Animated Mech Pack 动画清单看着很全（攻击/移动/受击/死亡全有）。结果官网点下载完全没反应——F12 一看真相：页面依赖的 jQuery 走国外 CDN 加载超时，连锁导致下载按钮绑定的函数根本不存在。换浏览器、开无痕都救不了，卡在网络层。
+绕行路线：quaternius 的所有投稿在 opengameart 都有镜像，静态直链不走 JS，直接把 zip 拖地址栏就下。以后规律记死：国内下他的包，直接去 opengameart 找同名镜像。
+导入只拖 FBX 和 Textures 两个文件夹（保持同级，材质按相对路径找贴图），.blend 不拖（Unity 会去调 Blender，没装必报错），.obj/.gltf 是重复格式。
+
+二、导入三连坑（今天最值钱的教训）
+坑一：拖进场景没有 Animator 组件。 FBX 的 Rig 默认 Animation Type 是 None，Unity 认为"没有骨骼"就不给 Animator。改 Generic 才有。但改完又发现 Avatar 槽是空的——Generic 还必须选 Create From This Model 并指定 Root node（RobotArmature），才算给骨骼上了户口。
+坑二（最阴险）：改 Rig 的瞬间，之前拖进 Animator 的动画全断了。 机理：任何导入设置 Apply 一次 = FBX 整个重导入 = 里面重建的 clip 子资产引用全部失效。排查时看到状态块的 Clip Count: 0、Curves 全 0 才反应过来。规矩定下来了：先把 Rig/导入设置全部定稿，最后再往 Animator 里装 clip。
+坑三：项目里混进一个"半截 prefab"。 场景搜出两个 Leela，其中一个只有 SkinnedMeshRenderer、没有骨骼没有 Animator、Scale 还是 100——是把模型内部的网格子物体单独拖去打包的产物。FBX 实例是三层套娃：根（挂 Animator）/皮（渲染）/骨（RobotArmature），打包永远拖最外层，中间那层撕下来就是一张死皮。
+
+三、状态机：七条线一个口诀
+EnemyAC：Idle/Walk/Run/Shoot 四状态 + Speed(Float) 三档 + Attack(Trigger)。连线时想明白一个事：Has Exit Time 和 Conditions 是 AND 关系——Shoot 的退出线如果挂着 Exit Time 又挂 Attack 条件，Trigger 触发一帧就消耗掉，等动画播到 75% 该退场时条件早不成立，机甲永远定格在举枪姿势。
+最终口诀：状态切换求快，取消 Exit Time；一次性动作求完整，留 Exit Time 且不挂任何条件。另外我给的连线表自己漏了 Walk→Idle（Speed Less 0.5），测试时发现敌人 Speed 归零后保持走路姿势原地滑行才补上——条件不满足，状态机真能一个状态待到天荒地老。
+Loop Time 在 FBX 的 Animation 标签里逐 clip 设置（Idle/Walk/Run 循环，Shoot 绝对不循环，否则变无限连发机关枪）。Prefab 模式里 Animator 统计显示 Clip Count: 0 吓了我一跳，拖回场景实测是 4——Prefab 模式的预览统计会抽风，实测为准。
+
+四、AI 喂参胶水（review 三轮）
+EnemyAI 三个状态各喂一行 SetFloat（巡逻 1 卡进 >0.5 档、追击 2 卡进 >1.5 档、攻击 0），Trigger 只在攻击冷却到点的瞬间打——不能放 case 开头，Trigger 置真后会一直留着直到被消耗，每帧都设等于无限连发。
+review 揪出三个问题：NavMeshAgent 字段声明重复（编译错误）；if(agent = null) 一个等号的赋值笔误（= 是给他，== 是问他）；anim 没判空。手抄代码这套流程跑通了，错误全是自己修的。
+
+五、死亡序列（生命周期闭环）
+原来的写法：Die() 里关组件，紧跟 Destroy(gameObject)——同一帧全没，死亡动画一次都没播过，Die() 纯属摆设。改造：isDead 标记防补刀 → Die() 关导航/碰撞/AI（关导航顺便 SetFloat Speed 归 0，防"躺地滑步"）→ anim.Play("Death") 强切（传送门方案，不用连线，但 Controller 里必须先有同名状态，不然 GotoState: State could not be found）→ 协程等 GetCurrentAnimatorStateInfo(0).length（动画时长自动同步，换动画不改代码）→ Destroy。
