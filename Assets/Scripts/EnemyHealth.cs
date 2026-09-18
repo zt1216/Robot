@@ -7,6 +7,7 @@ public class EnemyHealth : MonoBehaviour
 {
     public float maxHealth = 100f;
     private float currentHealth;
+    public GameObject explosionPrefab;
     private Renderer rend;
     private Color originalColor;
     public Color flashColor = Color.white;
@@ -69,6 +70,8 @@ public class EnemyHealth : MonoBehaviour
     IEnumerator DeathSequence()
     {
         yield return new WaitForSeconds(anim.GetCurrentAnimatorStateInfo(0).length);
+        GameObject fx = Instantiate(explosionPrefab, gameObject.transform.position, Quaternion.identity);
+        Destroy(fx, 2f);
         Destroy(gameObject);
     }
 }

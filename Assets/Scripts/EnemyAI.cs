@@ -66,7 +66,7 @@ public class EnemyAI : MonoBehaviour
         {
             return;
         }
-        if(anim == null)
+        if (anim == null)
         {
             return;
         }
@@ -118,18 +118,23 @@ public class EnemyAI : MonoBehaviour
                 if (Time.time >= nextAttackTime)
                 {
                     anim.SetTrigger("Attack");
-                    TryAttack(distToPlayer);
                     nextAttackTime = Time.time + Random.Range(minAttackCooldown, maxAttackCooldown);
                 }
                 break;
         }
     }
 
-    void TryAttack(float distToPlayer)
+    public void Fire()
     {
+        if (player == null)
+        {
+            return;
+        }
+
         Vector3 origin = transform.position;
         Vector3 toPlayer = player.position - origin;
         Vector3 dir = toPlayer.normalized;
+        float distToPlayer = toPlayer.magnitude;
 
         if (Physics.Raycast(origin, dir, out RaycastHit hit, distToPlayer, hitMask))
         {

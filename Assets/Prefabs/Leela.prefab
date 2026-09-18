@@ -835,6 +835,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  explosionPrefab: {fileID: 5680267217975305760, guid: 06f6333a7837df04c8006665f12fbd42, type: 3}
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.1
 --- !u!195 &110630240069257155

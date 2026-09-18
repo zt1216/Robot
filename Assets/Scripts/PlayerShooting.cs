@@ -15,6 +15,8 @@ public class PlayerShooting : MonoBehaviour
     public int weaponIndex = 0;
     public Text currentAmmoText;
     public GameObject damageTextPrefabs;
+    public GameObject tracerPrefab;
+    public Transform muzzle;
     public RectTransform canvasRect;
     private bool ammoDirty = true;
     private float lastShootTime = 0f;
@@ -76,7 +78,12 @@ public class PlayerShooting : MonoBehaviour
                     }
                     Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1f);
                     GameObject ball1 = Instantiate(ball, hit.point, Quaternion.identity);
-                    Destroy(ball1, 2f);
+                    Destroy(ball1, 1f);
+                    SpawnTracer(hit.point);
+                }
+                else
+                {
+                    SpawnTracer(ray.origin + ray.direction * 100f);
                 }
                 lastShootTime = Time.time;
                 currentAmmo[weaponIndex]--;
@@ -108,6 +115,12 @@ public class PlayerShooting : MonoBehaviour
             currentAmmoText.text = currentAmmo[weaponIndex] + "/" + magSize[weaponIndex];
             ammoDirty = false;
         }
+    }
+
+    void SpawnTracer(Vector3 targetPos)
+    {
+        GameObject t = Instantiate(tracerPrefab, muzzle.position, Quaternion.identity);
+        t.GetComponent<Tracer>().FlyTo(targetPos);
     }
 
     IEnumerator Reload()
