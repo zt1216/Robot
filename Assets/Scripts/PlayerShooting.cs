@@ -14,6 +14,8 @@ public class PlayerShooting : MonoBehaviour
     public int[] currentAmmo;
     public int weaponIndex = 0;
     public Text currentAmmoText;
+    public GameObject damageTextPrefabs;
+    public RectTransform canvasRect;
     private bool ammoDirty = true;
     private float lastShootTime = 0f;
     private bool isReloading = false;
@@ -65,6 +67,12 @@ public class PlayerShooting : MonoBehaviour
                     if(enemy != null)
                     {
                         enemy.TakeDamage(enemyDamage[weaponIndex]);
+                        GameObject popup = Instantiate(damageTextPrefabs);
+                        popup.transform.SetParent(canvasRect, false);
+
+                        DamagePopup dp = popup.GetComponent<DamagePopup>();
+                        dp.SetWorldPos(hit.point);
+                        dp.Init(enemyDamage[weaponIndex]);
                     }
                     Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1f);
                     GameObject ball1 = Instantiate(ball, hit.point, Quaternion.identity);

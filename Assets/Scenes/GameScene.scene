@@ -1615,7 +1615,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e337d83c0c4cf164195e93ac882db890, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyPrefabs: {fileID: 235322077719338316, guid: 92cc03603929ee4499822e0cba9c84d9, type: 3}
+  enemyPrefabs: {fileID: 6532205438176765313, guid: 6e0d1e759cc0bc24d8126b67df2a6efc, type: 3}
   spawnPoints:
   - {fileID: 1643729343}
   - {fileID: 1481209159}
@@ -2307,6 +2307,7 @@ MonoBehaviour:
   currentAmmo: 
   weaponIndex: 0
   currentAmmoText: {fileID: 812534968}
+  damageTextPrefabs: {fileID: 0}
   cameraController: {fileID: 2138060372}
   shootClip: {fileID: 8300000, guid: 85bd3f9c5baaadc4ba46c05f0593b57d, type: 3}
   hitMask:
