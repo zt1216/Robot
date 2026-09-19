@@ -15,6 +15,11 @@ public class WeaponPose : MonoBehaviour
     public Vector3 upperArmOffset = Vector3.zero;
     public Vector3 lowerArmOffset = Vector3.zero;
 
+    [Tooltip("切枪等临时姿势偏移，由 PlayerShooting 驱动")]
+    public Vector3 poseOffset = Vector3.zero;
+    [Tooltip("切枪等临时旋转偏移")]
+    public Vector3 poseRotOffset = Vector3.zero;
+
     void LateUpdate()
     {
         ApplyGun();
@@ -30,8 +35,8 @@ public class WeaponPose : MonoBehaviour
         {
             return;
         }
-        gun.localPosition = gunLocalPos;
-        gun.localRotation = Quaternion.Euler(gunLocalRot);
+        gun.localPosition = gunLocalPos + poseOffset;
+        gun.localRotation = Quaternion.Euler(gunLocalRot) * Quaternion.Euler(poseRotOffset);
     }
 
     void ApplyArm()

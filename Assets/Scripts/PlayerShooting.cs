@@ -18,6 +18,7 @@ public class PlayerShooting : MonoBehaviour
     public GameObject tracerPrefab;
     public Transform muzzle;
     public RectTransform canvasRect;
+    public WeaponPose weaponPose;
     private bool ammoDirty = true;
     private float lastShootTime = 0f;
     private bool isReloading = false;
@@ -25,6 +26,9 @@ public class PlayerShooting : MonoBehaviour
     public AudioClip shootClip;
     private AudioSource sfx;
     public LayerMask hitMask;
+    public Transform gunModel;
+    private bool isSwitching = false;
+    private Coroutine reloadRoutine;
 
     void Start()
     {
@@ -45,15 +49,14 @@ public class PlayerShooting : MonoBehaviour
         }
         if(Input.GetKeyDown(KeyCode.Q))
         {
-            weaponIndex = 1 - weaponIndex;
-            StopAllCoroutines();
-            isReloading = false;
-            lastShootTime = Time.time;
-            ammoDirty = true;
+            if (isSwitching == false)
+            {
+                StartCoroutine(SwitchWeapon());
+            }
         }
         Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2, 0));
         RaycastHit hit;
-        if (Input.GetMouseButton(0) && isReloading == false && currentAmmo[weaponIndex] > 0)
+        if (Input.GetMouseButton(0) && isReloading == false && currentAmmo[weaponIndex] > 0 && isSwitching == false)
         {
             if (Time.time - lastShootTime >= fireRate[weaponIndex])
             {
@@ -100,13 +103,13 @@ public class PlayerShooting : MonoBehaviour
         }
         if(isReloading == false && currentAmmo[weaponIndex] <= 0)
         {
-            StartCoroutine(Reload());
+            reloadRoutine = StartCoroutine(Reload());
         }
         if(Input.GetKeyDown(KeyCode.R))
         {
             if(isReloading == false)
             {
-                StartCoroutine(Reload());
+                reloadRoutine = StartCoroutine(Reload());
             }
         }
         
@@ -130,5 +133,44 @@ public class PlayerShooting : MonoBehaviour
         currentAmmo[weaponIndex] = magSize[weaponIndex];
         ammoDirty = true;
         isReloading = false;
+    }
+
+    IEnumerator SwitchWeapon()
+    {
+        isSwitching = true;
+
+        if(reloadRoutine != null)
+        {
+            StopCoroutine(reloadRoutine);
+            reloadRoutine = null;
+            isReloading = false;
+        }
+
+        Vector3 localDown = gunModel.parent.InverseTransformDirection(Vector3.down);
+        float dip = 0.3f;
+        float t =  0f;
+        while(t < 1f)
+        {
+            t += Time.deltaTime / 0.15f;
+            gunModel.localPosition = localDown * (dip * t);
+            weaponPose.poseRotOffset = new Vector3(-40f * t, 0f, 0f);
+            yield return null;
+        }
+        weaponIndex = 1 - weaponIndex;
+        ammoDirty = true;
+        lastShootTime = Time.time;
+
+        t = 0f;
+        while(t < 1f)
+        {
+            t += Time.deltaTime / 0.15f;
+            weaponPose.poseOffset = localDown * (dip * (1f - t));
+            weaponPose.poseRotOffset = new Vector3(-40f * (1f - t), 0f, 0f);
+            yield return null;
+        }
+        weaponPose.poseOffset = Vector3.zero;
+        weaponPose.poseRotOffset = Vector3.zero;
+
+        isSwitching = false;
     }
 }
