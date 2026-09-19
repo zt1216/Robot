@@ -150,43 +150,43 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.1
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.002002702
+      value: 0.005
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.05
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071068
+      value: -0.19134171
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: 0.8001032
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: 0.33141357
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.7071068
+      value: -0.46193978
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: 180
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: 60
       objectReference: {fileID: 0}
     - target: {fileID: 4035219142733080, guid: 689946d975a0e55449b1e7ae41933e73, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 90
+      value: -45
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2314,11 +2314,13 @@ MonoBehaviour:
   tracerPrefab: {fileID: 4301768544191732537, guid: 807b91daa78eff34a9d3b79a8fed0dc2, type: 3}
   muzzle: {fileID: 1711466193}
   canvasRect: {fileID: 619218211}
+  weaponPose: {fileID: 1639397864}
   cameraController: {fileID: 2138060372}
   shootClip: {fileID: 8300000, guid: 85bd3f9c5baaadc4ba46c05f0593b57d, type: 3}
   hitMask:
     serializedVersion: 2
     m_Bits: 385
+  gunModel: {fileID: 95702582}
 --- !u!114 &1639397862
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2376,6 +2378,8 @@ MonoBehaviour:
   weight: 0
   upperArmOffset: {x: 0, y: 0, z: 0}
   lowerArmOffset: {x: 0, y: 0, z: 0}
+  poseOffset: {x: 0, y: 0, z: 0}
+  poseRotOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &1643729342
 GameObject:
   m_ObjectHideFlags: 0
