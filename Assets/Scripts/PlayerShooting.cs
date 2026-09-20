@@ -29,6 +29,8 @@ public class PlayerShooting : MonoBehaviour
     public Transform gunModel;
     private bool isSwitching = false;
     private Coroutine reloadRoutine;
+    private Coroutine recoilPoseRoutine;
+    public float gunKick = 0.06f;
 
     void Start()
     {
@@ -95,7 +97,8 @@ public class PlayerShooting : MonoBehaviour
                 {
                     cameraController.ApplyRecoil();
                 }
-                if(shootClip != null && sfx != null)
+                KickGun();
+                if (shootClip != null && sfx != null)
                 {
                     sfx.PlayOneShot(shootClip);
                 }
@@ -172,5 +175,35 @@ public class PlayerShooting : MonoBehaviour
         weaponPose.poseRotOffset = Vector3.zero;
 
         isSwitching = false;
+    }
+
+    void KickGun()
+    {
+        if (weaponPose == null || gunModel == null)
+        {
+            return;
+        }
+        Vector3 localBack = gunModel.parent.InverseTransformDirection(-gunModel.forward);
+        weaponPose.recoilOffset = localBack * gunKick;
+
+        if(recoilPoseRoutine != null)
+        {
+            StopCoroutine(recoilPoseRoutine);
+        }
+        recoilPoseRoutine = StartCoroutine(RecoilPoseRoutine());
+    }
+
+    IEnumerator RecoilPoseRoutine()
+    {
+        Vector3 start = weaponPose.recoilOffset;
+        float t = 0f;
+        while(t < 1f)
+        {
+            t += Time.deltaTime / 0.12f;
+            weaponPose.recoilOffset = Vector3.Lerp(start, Vector3.zero, t);
+            yield return null;
+        }
+        weaponPose.recoilOffset = Vector3.zero;
+        recoilPoseRoutine = null;
     }
 }

@@ -37,8 +37,8 @@ public class CameraController : MonoBehaviour
 
     IEnumerator RecoilRoutine()
     {
-        float targetPitch = originalPitch + recoilUp;
-        while (pitch < targetPitch)
+        float targetPitch = originalPitch - recoilUp;
+        while (pitch > targetPitch)
         {
             if (Input.GetAxis("Mouse Y") != 0f)
             {
@@ -47,7 +47,7 @@ public class CameraController : MonoBehaviour
             pitch = Mathf.MoveTowards(pitch, targetPitch, 0.2f);
             yield return null;
         }
-        while(pitch > originalPitch)
+        while(pitch < originalPitch)
         {
             if (Input.GetAxis("Mouse Y") != 0f)
             {
