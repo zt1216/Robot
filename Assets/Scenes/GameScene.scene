@@ -22833,6 +22833,7 @@ GameObject:
   - component: {fileID: 1639397863}
   - component: {fileID: 1639397864}
   - component: {fileID: 1639397865}
+  - component: {fileID: 1639397867}
   m_Layer: 6
   m_HasEditorInfo: 1
   m_Name: Player
@@ -23079,6 +23080,10 @@ MonoBehaviour:
   poseOffset: {x: 0, y: 0, z: 0}
   recoilOffset: {x: 0, y: 0, z: 0}
   poseRotOffset: {x: 0, y: 0, z: 0}
+  aimAlign: 1
+  aimCamera: {fileID: 1387809381}
+  aimDistance: 50
+  aimEulerBias: {x: 0, y: 180, z: 0}
 --- !u!114 &1639397865
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23094,6 +23099,19 @@ MonoBehaviour:
   spine: {fileID: 611578046}
   cam: {fileID: 1387809381}
   maxPitch: 45
+--- !u!114 &1639397867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1639397853}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37ae8dd9a914a6c439ec9ff30988e6ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  graceTime: 0.15
 --- !u!1001 &1641237462
 PrefabInstance:
   m_ObjectHideFlags: 0

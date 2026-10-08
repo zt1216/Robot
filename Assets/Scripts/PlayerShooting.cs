@@ -192,7 +192,6 @@ public class PlayerShooting : MonoBehaviour
         }
         recoilPoseRoutine = StartCoroutine(RecoilPoseRoutine());
     }
-
     IEnumerator RecoilPoseRoutine()
     {
         Vector3 start = weaponPose.recoilOffset;

@@ -23,6 +23,12 @@ public class WeaponPose : MonoBehaviour
     [Tooltip("切枪等临时旋转偏移")]
     public Vector3 poseRotOffset = Vector3.zero;
 
+    [Header("枪口指向准星")]
+    public bool aimAlign = true;
+    public Transform aimCamera;
+    public float aimDistance = 50f;
+    public Vector3 aimEulerBias = new Vector3(0f, 180f, 0f);
+
     void LateUpdate()
     {
         ApplyGun();
@@ -39,7 +45,17 @@ public class WeaponPose : MonoBehaviour
             return;
         }
         gun.localPosition = gunLocalPos + poseOffset + recoilOffset;
-        gun.localRotation = Quaternion.Euler(gunLocalRot) * Quaternion.Euler(poseRotOffset);
+        if (aimAlign && aimCamera != null)
+        {
+            Vector3 aimPoint = aimCamera.position + aimCamera.forward * aimDistance;
+            Quaternion aimRot = Quaternion.LookRotation(aimPoint - gun.position, aimCamera.up);
+            gun.rotation = aimRot * Quaternion.Euler(poseRotOffset + aimEulerBias);
+
+        }
+        else
+        {
+            gun.localRotation = Quaternion.Euler(gunLocalRot) * Quaternion.Euler(poseRotOffset);
+        }
     }
 
     void ApplyArm()
