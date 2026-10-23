@@ -17,7 +17,7 @@ public class Tracer : MonoBehaviour
     {
         while(Vector3.Distance(transform.position,target) > 0.1f)
         {
-            transform.position = Vector3.MoveTowards(transform.position, target, speed * Time.deltaTime);
+            transform.position = Vector3.MoveTowards(transform.position, target, speed * Time.unscaledDeltaTime);
             yield return null;
         }
         Destroy(gameObject);

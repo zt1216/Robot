@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[DefaultExecutionOrder(120)]
 public class WeaponHoldPose : MonoBehaviour
 {
     [Header("Right Arm")]

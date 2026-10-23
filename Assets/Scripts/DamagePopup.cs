@@ -22,13 +22,13 @@ public class DamagePopup : MonoBehaviour
 
     void Update()
     {
-        rect.anchoredPosition += Vector2.up * floatSpeed * Time.deltaTime;
+        rect.anchoredPosition += Vector2.up * floatSpeed * Time.unscaledDeltaTime;
 
-        elapsed += Time.deltaTime;
+        elapsed += Time.unscaledDeltaTime;
         if(elapsed > lifetime / 2)
         {
             Color c = txt.color;
-            c.a -= Time.deltaTime / (lifetime / 2);
+            c.a -= Time.unscaledDeltaTime / (lifetime / 2);
             txt.color = c;
         }
         if(elapsed >= lifetime)

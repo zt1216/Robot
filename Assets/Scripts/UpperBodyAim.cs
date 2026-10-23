@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[DefaultExecutionOrder(150)]
 public class UpperBodyAim : MonoBehaviour
 {
     public Transform spine;
@@ -10,6 +11,14 @@ public class UpperBodyAim : MonoBehaviour
 
     void LateUpdate()
     {
+        if(spine == null || cam == null)
+        {
+            return;
+        }
+        if(Time.timeScale == 0f)
+        {
+            return;
+        }
         float pitch = cam.eulerAngles.x;
         if(pitch > 180f)
         {

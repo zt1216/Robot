@@ -17,28 +17,39 @@ public class GameOverManager : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.R))
             {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                RetryGame();
             }
         }
     }
     public void Show() 
     {
-        if(gameOverPanel == null || enemySpawner == null || resultText == null)
-        {
-            return;
-        }
-        gameOverPanel.SetActive(true);
         isDead = true;
+        Time.timeScale = 0f;
+        if(gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+        }
+        if(resultText != null && enemySpawner != null)
+        {
+            resultText.text = "你死了，活到Wave " + enemySpawner.CurrentWave;
+        }
+        PauseManager pm = FindObjectOfType<PauseManager>();
+        if(pm != null)
+        {
+            pm.enabled = false; 
+        }
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        resultText.text = "你死了  活到 Wave " + enemySpawner.CurrentWave;
     }
     public void RetryGame()
     {
+        Time.timeScale = 1f;
+        MainMenu.loadSave = false;
         SceneManager.LoadScene("GameScene");
     }
     public void BackToMenu()
     {
+        Time.timeScale = 1f;
         SceneManager.LoadScene("MainMenu");
     }
 }

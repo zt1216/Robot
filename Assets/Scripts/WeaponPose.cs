@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[DefaultExecutionOrder(200)]
 public class WeaponPose : MonoBehaviour
 {
     [Header("Gun - child of Right_Hand")]

@@ -19,6 +19,9 @@ public class EnemyAI : MonoBehaviour
     public float maxAttackCooldown = 5f;
 
     public LayerMask hitMask;
+    [Header("射线高度")]
+    public float fireHeight = 1.2f;
+    public float targetHeight = 1.0f;
 
     [Header("Debug")]
     public bool debugLog = false;
@@ -58,6 +61,10 @@ public class EnemyAI : MonoBehaviour
 
     void Update()
     {
+        if(Time.timeScale == 0f)
+        {
+            return;
+        }
         if (player == null)
         {
             return;
@@ -75,7 +82,7 @@ public class EnemyAI : MonoBehaviour
         switch (state)
         {
             case EnemyState.Patrol:
-                if (agent.remainingDistance <= 2f)
+                if (!agent.hasPath || agent.pathStatus != NavMeshPathStatus.PathComplete ||agent.remainingDistance <= 2f)
                 {
                     PickNewPatrolPoint();
                 }
@@ -131,12 +138,14 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
-        Vector3 origin = transform.position;
-        Vector3 toPlayer = player.position - origin;
-        Vector3 dir = toPlayer.normalized;
-        float distToPlayer = toPlayer.magnitude;
+        Vector3 origin = transform.position + Vector3.up * fireHeight;
+        Vector3 targetPoint = player.position + Vector3.up * targetHeight;
 
-        if (Physics.Raycast(origin, dir, out RaycastHit hit, distToPlayer, hitMask))
+        Vector3 toPlayer = targetPoint - origin;
+        Vector3 dir = toPlayer.normalized;
+        float dist = toPlayer.magnitude;
+
+        if (Physics.Raycast(origin, dir, out RaycastHit hit, dist, hitMask, QueryTriggerInteraction.Ignore))
         {
             if (debugLog)
             {

@@ -14,15 +14,19 @@ public class EnemySpawner : MonoBehaviour
     public float randomRangeX = 25f;
     public float randomRangeZ = 25f;
     public float minDistanceToPlayer = 10f;
-    public float checkSphereRadius = 0.6f;
+    public float checkSphereRadius = 1.5f;
+    private int enemyLayerMask;
+    public float maxYOffset = 3f;
+    private int spawnBlockMask;
 
     public Transform player;
 
+    private NavMeshPath pathBuffer;
     private int wave = 0;
     private int toSpawn = 0;
     private float spawnTimer = 0f;
     private float restTimer = 0f;
-
+    private float stuckTimer = 0f;
     public int CurrentWave
     {
         get
@@ -33,6 +37,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
+        pathBuffer = new NavMeshPath();
         if (MainMenu.loadSave == true)
         {
             int saved = PlayerPrefs.GetInt("SavedWave", 0);
@@ -41,7 +46,8 @@ public class EnemySpawner : MonoBehaviour
                 wave = saved - 1;
             }
         }
-
+        enemyLayerMask = LayerMask.GetMask("Enemy");
+        spawnBlockMask = LayerMask.GetMask("Enemy", "Default");
         if (player == null)
         {
             PlayerHealth ph = FindObjectOfType<PlayerHealth>();
@@ -50,6 +56,7 @@ public class EnemySpawner : MonoBehaviour
                 player = ph.transform;
             }
         }
+        StartWave();
     }
 
     void Update()
@@ -63,13 +70,26 @@ public class EnemySpawner : MonoBehaviour
                 spawnTimer = 0f;
             }
         }
-        else if (AliveCount() == 0)
+        else
         {
-            restTimer += Time.deltaTime;
-            if (restTimer >= restTime)
+            if(AliveCount() == 0)
             {
-                restTimer = 0f;
-                StartWave();
+                stuckTimer = 0f;
+                restTimer += Time.deltaTime;
+                if(restTimer >= restTime)
+                {
+                    restTimer = 0f;
+                    StartWave();
+                }
+            }
+            else
+            {
+                stuckTimer += Time.deltaTime;
+                if(stuckTimer >= 180f)
+                {
+                    stuckTimer = 0f;
+                    StartWave();
+                }
             }
         }
     }
@@ -86,32 +106,46 @@ public class EnemySpawner : MonoBehaviour
         if (enemyPrefabs == null)
         {
             Debug.LogError("[EnemySpawner] enemyPrefabs is null");
+            toSpawn = 0;
             return;
         }
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 30; i++)
         {
             Vector3 randomPos = new Vector3(
-                Random.Range(-randomRangeX, randomRangeX),
-                1f,
-                Random.Range(-randomRangeZ, randomRangeZ));
+                transform.position.x + Random.Range(-randomRangeX, randomRangeX),
+                transform.position.y + 2f,
+                transform.position.z + Random.Range(-randomRangeZ, randomRangeZ));
 
             NavMeshHit hit;
-            if (NavMesh.SamplePosition(randomPos, out hit, 2f, NavMesh.AllAreas))
+            if (!NavMesh.SamplePosition(randomPos, out hit, 15f, NavMesh.AllAreas))
             {
-                if (player != null && Vector3.Distance(hit.position, player.position) < minDistanceToPlayer)
-                {
-                    continue;
-                }
-                if (Physics.CheckSphere(hit.position, checkSphereRadius))
-                {
-                    continue;
-                }
-
-                SpawnEnemyAt(hit.position);
-                toSpawn--;
-                return;
+                continue;
             }
+            if(Mathf.Abs(hit.position.y - transform.position.y) > maxYOffset)
+            {
+                continue;
+            }
+            if (player != null && Vector3.Distance(hit.position, player.position) < minDistanceToPlayer)
+            {
+                continue;
+            }
+            Vector3 checkCenter = hit.position + Vector3.up * 2.3f;
+            if (Physics.CheckSphere(checkCenter, checkSphereRadius, spawnBlockMask))
+            {
+                continue;
+            }
+            if(Physics.Raycast(hit.position + Vector3.up * 0.2f,Vector3.up,12f,spawnBlockMask))
+            {
+                continue;
+            }
+            if(!NavMesh.CalculatePath(hit.position,player.position,NavMesh.AllAreas,pathBuffer) || pathBuffer.status != NavMeshPathStatus.PathComplete)
+            {
+                continue;
+            }
+            SpawnEnemyAt(hit.position);
+            toSpawn--;
+            return;
         }
 
         if (spawnPoints != null && spawnPoints.Length > 0)
@@ -119,9 +153,18 @@ public class EnemySpawner : MonoBehaviour
             Transform p = spawnPoints[Random.Range(0, spawnPoints.Length)];
             SpawnEnemyAt(p.position);
             toSpawn--;
+            return;
         }
-    }
 
+        Vector3 fallback = transform.position;
+        NavMeshHit fb;
+        if(NavMesh.SamplePosition(fallback,out fb,10f,NavMesh.AllAreas))
+        {
+            fallback = fb.position;
+        }
+        SpawnEnemyAt(fallback);
+        toSpawn--;
+    }
     void SpawnEnemyAt(Vector3 pos)
     {
         GameObject enemy = Instantiate(enemyPrefabs, pos, Quaternion.identity);

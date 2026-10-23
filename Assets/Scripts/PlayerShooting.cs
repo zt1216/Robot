@@ -34,6 +34,8 @@ public class PlayerShooting : MonoBehaviour
 
     void Start()
     {
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 60;
         currentAmmo = new int[magSize.Length];
         for(int i = 0;i < magSize.Length;i++)
         {
@@ -62,7 +64,7 @@ public class PlayerShooting : MonoBehaviour
         {
             if (Time.time - lastShootTime >= fireRate[weaponIndex])
             {
-                if (Physics.Raycast(ray, out hit, 100f,hitMask))
+                if (Physics.Raycast(ray,out hit,100f,hitMask,QueryTriggerInteraction.Ignore))
                 {
                     Target shoot = hit.collider.GetComponent<Target>();
 
@@ -82,7 +84,7 @@ public class PlayerShooting : MonoBehaviour
                         dp.Init(enemyDamage[weaponIndex]);
                     }
                     Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1f);
-                    GameObject ball1 = Instantiate(ball, hit.point, Quaternion.identity);
+                    GameObject ball1 = Instantiate(ball, hit.point + hit.normal * 0.01f, Quaternion.LookRotation(hit.normal));
                     Destroy(ball1, 1f);
                     SpawnTracer(hit.point);
                 }
@@ -104,13 +106,13 @@ public class PlayerShooting : MonoBehaviour
                 }
             }
         }
-        if(isReloading == false && currentAmmo[weaponIndex] <= 0)
+        if(isReloading == false && isSwitching == false && currentAmmo[weaponIndex] <= 0)
         {
             reloadRoutine = StartCoroutine(Reload());
         }
         if(Input.GetKeyDown(KeyCode.R))
         {
-            if(isReloading == false)
+            if(isReloading == false && isSwitching == false)
             {
                 reloadRoutine = StartCoroutine(Reload());
             }
@@ -132,14 +134,23 @@ public class PlayerShooting : MonoBehaviour
     IEnumerator Reload()
     {
         isReloading = true;
-        yield return new WaitForSeconds(reloadTime[weaponIndex]);
-        currentAmmo[weaponIndex] = magSize[weaponIndex];
-        ammoDirty = true;
+        int reloadIndex = weaponIndex;
+        yield return new WaitForSeconds(reloadTime[reloadIndex]);
+        if(reloadIndex == weaponIndex)
+        {
+            currentAmmo[weaponIndex] = magSize[weaponIndex];
+            ammoDirty = true;
+        }
         isReloading = false;
     }
 
     IEnumerator SwitchWeapon()
     {
+        if(weaponPose == null || gunModel == null)
+        {
+            Debug.LogError("[PlayerShooting] 切枪失败：weaponPose 或 gunModel 未赋值");
+            yield break;
+        }
         isSwitching = true;
 
         if(reloadRoutine != null)
@@ -155,7 +166,7 @@ public class PlayerShooting : MonoBehaviour
         while(t < 1f)
         {
             t += Time.deltaTime / 0.15f;
-            gunModel.localPosition = localDown * (dip * t);
+            weaponPose.poseOffset = localDown * (dip * t);
             weaponPose.poseRotOffset = new Vector3(-40f * t, 0f, 0f);
             yield return null;
         }

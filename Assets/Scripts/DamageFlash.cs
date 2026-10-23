@@ -35,10 +35,14 @@ public class DamageFlash : MonoBehaviour
     }
     IEnumerator FlashRoutine()
     {
+        if(cg == null)
+        {
+            yield break;
+        }    
         cg.alpha = 0.5f;
         while(cg.alpha > 0f)
         {
-            cg.alpha -= 2f * Time.deltaTime;
+            cg.alpha -= 2f * Time.unscaledDeltaTime;
             yield return null;
         }
         cg.alpha = 0f;

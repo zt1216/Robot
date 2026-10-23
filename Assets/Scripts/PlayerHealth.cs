@@ -35,18 +35,22 @@ public class PlayerHealth : MonoBehaviour
         PlayerController pc = GetComponent<PlayerController>();
         PlayerShooting ps = GetComponent<PlayerShooting>();
         GameOverManager gm = FindObjectOfType<GameOverManager>();
-        if(pc != null && ps != null && gm != null)
+        if(pc != null)
         {
             pc.enabled = false;
+        }
+        if (ps != null)
+        {
             ps.enabled = false;
+        }
+        if (gm != null)
+        {
             gm.Show();
         }
         else
         {
-            Debug.LogError("Die() 失败：缺组件 " +
-            (pc == null ? "PlayerController " : "") +
-            (ps == null ? "PlayerShooting " : "") +
-            (gm == null ? "GameOverManager " : ""));
+            Debug.LogError("Die() 失败：场景里找不到 GameOverManager，已直接冻结");
+            Time.timeScale = 0f;
         }
     }
 }

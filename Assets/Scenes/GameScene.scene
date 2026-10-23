@@ -18167,7 +18167,8 @@ MonoBehaviour:
   randomRangeX: 25
   randomRangeZ: 25
   minDistanceToPlayer: 10
-  checkSphereRadius: 0.6
+  checkSphereRadius: 2.2
+  maxYOffset: 3
   player: {fileID: 1639397854}
 --- !u!4 &1272362625
 Transform:
@@ -18178,7 +18179,7 @@ Transform:
   m_GameObject: {fileID: 1272362623}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 13.91315, y: -2.8285522, z: -11.978596}
+  m_LocalPosition: {x: 29.8, y: -0.22, z: -17.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -22833,7 +22834,6 @@ GameObject:
   - component: {fileID: 1639397863}
   - component: {fileID: 1639397864}
   - component: {fileID: 1639397865}
-  - component: {fileID: 1639397867}
   m_Layer: 6
   m_HasEditorInfo: 1
   m_Name: Player
@@ -23099,19 +23099,6 @@ MonoBehaviour:
   spine: {fileID: 611578046}
   cam: {fileID: 1387809381}
   maxPitch: 45
---- !u!114 &1639397867
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1639397853}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 37ae8dd9a914a6c439ec9ff30988e6ba, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  graceTime: 0.15
 --- !u!1001 &1641237462
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29934,8 +29921,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cdcf150091220a4b9f22759520cf499, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mouseSensitivity: 1
   recoilUp: 2
+  maxRecoilStack: 6
+  recoilFallSpeed: 10
+  mouseSensitivity: 1
 --- !u!1001 &2139410352
 PrefabInstance:
   m_ObjectHideFlags: 0

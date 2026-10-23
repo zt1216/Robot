@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    private float groundedGrace = 0f;
+
     [Header("Move Speed")]
     public float walkSpeed = 5f;
     public float sprintSpeed = 8f;
@@ -66,12 +68,26 @@ public class PlayerController : MonoBehaviour
             speed = sprintSpeed;
         }
 
-        if (controller.isGrounded)
+        if(controller.isGrounded)
         {
-            verticalVelocity = -1f;
-            if (Input.GetKeyDown(KeyCode.Space))
+            groundedGrace = 0.15f;
+        }
+        else if(Mathf.Abs(verticalVelocity) < 2f && groundedGrace > 0f)
+        {
+            groundedGrace -= Time.deltaTime;
+        }
+        bool grounded = controller.isGrounded || groundedGrace > 0f;
+
+        if(grounded)
+        {
+            if(verticalVelocity < 0f)
+            {
+                verticalVelocity = -1f;
+            }
+            if(Input.GetKeyDown(KeyCode.Space))
             {
                 verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+                groundedGrace = 0f;
                 animator.SetBool("Jump", true);
             }
             else
@@ -85,7 +101,8 @@ public class PlayerController : MonoBehaviour
             verticalVelocity += gravity * Time.deltaTime;
             animator.SetBool("FreeFall", true);
         }
-        animator.SetBool("Grounded", controller.isGrounded);
+        animator.SetBool("Grounded", grounded);
+
         yaw += mouseX * mouseSensitivity;
         transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
         Vector3 inputDir = new Vector3(h, 0f, v);
