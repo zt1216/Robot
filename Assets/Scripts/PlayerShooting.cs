@@ -36,6 +36,17 @@ public class PlayerShooting : MonoBehaviour
     {
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = 60;
+
+        if(ObjectPool.Instance != null)
+        {
+            ObjectPool.Instance.Prewarm(ball, 20);
+            ObjectPool.Instance.Prewarm(tracerPrefab, 20);
+            ObjectPool.Instance.Prewarm(damageTextPrefabs, 20);
+        }
+        else
+        {
+            Debug.LogError("[PlayerShooting] 场景里没有挂 ObjectPool 的 PoolManager，对象池未启用");
+        }
         currentAmmo = new int[magSize.Length];
         for(int i = 0;i < magSize.Length;i++)
         {
@@ -76,7 +87,7 @@ public class PlayerShooting : MonoBehaviour
                     if(enemy != null)
                     {
                         enemy.TakeDamage(enemyDamage[weaponIndex]);
-                        GameObject popup = Instantiate(damageTextPrefabs);
+                        GameObject popup = ObjectPool.Instance.Get(damageTextPrefabs, hit.point, Quaternion.identity);
                         popup.transform.SetParent(canvasRect, false);
 
                         DamagePopup dp = popup.GetComponent<DamagePopup>();
@@ -84,8 +95,7 @@ public class PlayerShooting : MonoBehaviour
                         dp.Init(enemyDamage[weaponIndex]);
                     }
                     Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1f);
-                    GameObject ball1 = Instantiate(ball, hit.point + hit.normal * 0.01f, Quaternion.LookRotation(hit.normal));
-                    Destroy(ball1, 1f);
+                    ObjectPool.Instance.Get(ball,hit.point + hit.normal * 0.01f,Quaternion.LookRotation(hit.normal),1f);
                     SpawnTracer(hit.point);
                 }
                 else
@@ -127,7 +137,7 @@ public class PlayerShooting : MonoBehaviour
 
     void SpawnTracer(Vector3 targetPos)
     {
-        GameObject t = Instantiate(tracerPrefab, muzzle.position, Quaternion.identity);
+        GameObject t = ObjectPool.Instance.Get(tracerPrefab, muzzle.position, Quaternion.identity);
         t.GetComponent<Tracer>().FlyTo(targetPos);
     }
 

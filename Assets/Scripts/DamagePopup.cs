@@ -15,6 +15,16 @@ public class DamagePopup : MonoBehaviour
         rect = GetComponent<RectTransform>();
     }
 
+    void OnEnable()
+    {
+        elapsed = 0f;
+        if(txt != null)
+        {
+            Color c = txt.color;
+            c.a = 1f;
+            txt.color = c;
+        }
+    }
     public void Init(int damage)
     {
         txt.text = damage.ToString();
@@ -33,7 +43,7 @@ public class DamagePopup : MonoBehaviour
         }
         if(elapsed >= lifetime)
         {
-            Destroy(gameObject);
+            ObjectPool.Release(gameObject);
         }
     }
 

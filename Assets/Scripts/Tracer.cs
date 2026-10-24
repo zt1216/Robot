@@ -20,6 +20,6 @@ public class Tracer : MonoBehaviour
             transform.position = Vector3.MoveTowards(transform.position, target, speed * Time.unscaledDeltaTime);
             yield return null;
         }
-        Destroy(gameObject);
+        ObjectPool.Release(gameObject);
     }
 }
