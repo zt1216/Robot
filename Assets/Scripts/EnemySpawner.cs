@@ -37,6 +37,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
+        DynamicGI.UpdateEnvironment();
         pathBuffer = new NavMeshPath();
         if (MainMenu.loadSave == true)
         {

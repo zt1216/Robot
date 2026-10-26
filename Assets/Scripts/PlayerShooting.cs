@@ -95,7 +95,10 @@ public class PlayerShooting : MonoBehaviour
                         dp.Init(enemyDamage[weaponIndex]);
                     }
                     Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.red, 1f);
-                    ObjectPool.Instance.Get(ball,hit.point + hit.normal * 0.01f,Quaternion.LookRotation(hit.normal),1f);
+                    if(hit.collider.GetComponentInParent<EnemyHealth>() == null & hit.collider.GetComponent<Target>() == null)
+                    {
+                        ObjectPool.Instance.Get(ball, hit.point + hit.normal * 0.01f, Quaternion.LookRotation(-hit.normal), 1f);
+                    }
                     SpawnTracer(hit.point);
                 }
                 else

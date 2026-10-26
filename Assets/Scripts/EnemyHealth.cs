@@ -116,7 +116,11 @@ public class EnemyHealth : MonoBehaviour
         float deathLength = 1.5f;
         if(anim != null)
         {
-            deathLength = anim.GetCurrentAnimatorStateInfo(0).length;
+            AnimatorStateInfo st = anim.GetCurrentAnimatorStateInfo(0);
+            if(st.IsName("Death"))
+            {
+                deathLength = st.length;
+            }
         }
         yield return new WaitForSeconds(deathLength);
 

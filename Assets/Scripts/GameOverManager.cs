@@ -11,6 +11,16 @@ public class GameOverManager : MonoBehaviour
     public EnemySpawner enemySpawner;
     public Text resultText;
 
+    void OnEnable()
+    {
+        PlayerHealth.OnDied += HandlePlayerDeath;
+    }
+
+    void OnDisable()
+    {
+        PlayerHealth.OnDied -= HandlePlayerDeath;
+    }
+
     void Update()
     {
         if (isDead)
@@ -20,6 +30,20 @@ public class GameOverManager : MonoBehaviour
                 RetryGame();
             }
         }
+    }
+    void HandlePlayerDeath()
+    {
+        PlayerController pc = FindObjectOfType<PlayerController>();
+        PlayerShooting ps = FindObjectOfType<PlayerShooting>();
+        if(pc != null)
+        {
+            pc.enabled = false;
+        }
+        if(ps != null)
+        {
+            ps.enabled = false;
+        }
+        Show();
     }
     public void Show() 
     {
