@@ -88,7 +88,10 @@ public class PlayerShooting : MonoBehaviour
                     {
                         enemy.TakeDamage(enemyDamage[weaponIndex]);
                         GameObject popup = ObjectPool.Instance.Get(damageTextPrefabs, hit.point, Quaternion.identity);
-                        popup.transform.SetParent(canvasRect, false);
+                        if(popup.transform.parent != canvasRect)
+                        {
+                            popup.transform.SetParent(canvasRect, false);
+                        }
 
                         DamagePopup dp = popup.GetComponent<DamagePopup>();
                         dp.SetWorldPos(hit.point);

@@ -46,3 +46,6 @@ sysinfo.txt
 
 # Backup files
 *.bak
+
+# Performance benchmark output (local only)
+bench_result.txt
